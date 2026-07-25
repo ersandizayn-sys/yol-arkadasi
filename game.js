@@ -118,18 +118,21 @@ function startMusic() {
   });
 }
 
-muteBtn.addEventListener("click", (e) => {
-  e.stopPropagation();
-  startMusic();
-  bgMusic.muted = !bgMusic.muted;
-  muteBtn.textContent = bgMusic.muted ? "🔇" : "🔊";
-});
+if(muteBtn) {
+    muteBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      startMusic();
+      bgMusic.muted = !bgMusic.muted;
+      muteBtn.textContent = bgMusic.muted ? "🔇" : "🔊";
+    });
+}
 
 // ====== HİKAYE (oyundan önce, cümle cümle) ======
 let storyIndex = 0;
 
 function renderStory() {
-  document.getElementById("story-text").textContent = STORY_LINES[storyIndex];
+  const storyTextEl = document.getElementById("story-text");
+  if(storyTextEl) storyTextEl.textContent = STORY_LINES[storyIndex];
 }
 
 function advanceStory() {
@@ -141,24 +144,26 @@ function advanceStory() {
   }
 }
 
-document.getElementById("screen-story").addEventListener("click", () => {
-  startMusic();
-  advanceStory();
-});
+const screenStoryEl = document.getElementById("screen-story");
+if(screenStoryEl) {
+    screenStoryEl.addEventListener("click", () => {
+      startMusic();
+      advanceStory();
+    });
+}
 renderStory();
 
 // ====== KURULUM ======
 function setupCanvas() {
   canvas = document.getElementById("game-canvas");
+  if(!canvas) return;
   ctx = canvas.getContext("2d");
   resizeCanvas();
   window.addEventListener("resize", resizeCanvas);
 }
 
 function resizeCanvas() {
-  // window.innerWidth/innerHeight (gerçek görünür viewport) kullanılıyor —
-  // mobilde 100vh'nin adres çubuğunu da sayması, arabanın ekranın
-  // altında/görünmez kalmasına yol açıyordu.
+  // window.innerWidth/innerHeight (gerçek görünür viewport) kullanılıyor
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = window.innerWidth;
   const h = window.innerHeight;
@@ -208,8 +213,10 @@ function startPlaying() {
 }
 
 function updateHud() {
-  document.getElementById("hud-stage").textContent = STAGES[stageIndex].name.toUpperCase();
-  document.getElementById("hud-hearts").textContent = `♥ ${hearts}/${TOTAL_HEARTS}`;
+  const hudStage = document.getElementById("hud-stage");
+  const hudHearts = document.getElementById("hud-hearts");
+  if(hudStage) hudStage.textContent = STAGES[stageIndex].name.toUpperCase();
+  if(hudHearts) hudHearts.textContent = `♥ ${hearts}/${TOTAL_HEARTS}`;
 }
 
 // ====== GİRİŞ ======
@@ -223,58 +230,92 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "ArrowRight") changeLane(1);
 });
 
-document.getElementById("touch-left").addEventListener("click", () => changeLane(-1));
-document.getElementById("touch-right").addEventListener("click", () => changeLane(1));
+const tl = document.getElementById("touch-left");
+const tr = document.getElementById("touch-right");
+if(tl) tl.addEventListener("click", () => changeLane(-1));
+if(tr) tr.addEventListener("click", () => changeLane(1));
 
-document.getElementById("btn-start").addEventListener("click", () => {
+const btnStart = document.getElementById("btn-start");
+const btnReplay = document.getElementById("btn-replay");
+const btnReplayWin = document.getElementById("btn-replay-win");
+
+if(btnStart) btnStart.addEventListener("click", () => {
   resetGame();
   startPlaying();
 });
-document.getElementById("btn-replay").addEventListener("click", () => {
+if(btnReplay) btnReplay.addEventListener("click", () => {
   resetGame();
   startPlaying();
 });
-document.getElementById("btn-replay-win").addEventListener("click", () => {
+if(btnReplayWin) btnReplayWin.addEventListener("click", () => {
   resetGame();
   startPlaying();
 });
 
-// ====== SPAWN ======
-// Bir satırda 0, 1 ya da 2 engel olabilir (asla 3 değil). Sadece YENİ SPAWN
-// NOKTASINA (y=-80) yeterince yakın olan, yani ileride oyuncunun çarpışma
-// penceresinde yeni engelle aynı ana denk gelebilecek engeller "dolu şerit"
-// sayılır — ekranın çok üstünde kalmış, uzun süre önce geçmiş engeller artık
-// tehdit oluşturmadığı için sayılmaz. (Önceki sürümde tüm ekran taranıyordu,
-// bu da 2 şeridi çok erken "kilitleyip" yolu gereksiz yere boşaltıyordu.)
+// ====== SPAWN (GÜNCELLENDİ) ======
 function spawnEntity() {
   const lanes = [0, 1, 2];
-  const combineThreshold = playerH + 30; // playerH + 80 (pencere) - 80 (spawn farkı) + pay
-  const occupiedLanes = new Set(
+  
+  // 1. Oyuncunun çapraz engeller arasından manevra yapabilmesi için gereken güvenli dikey mesafe.
+  const safeDistance = playerH * 3.5 + 80;
+
+  // 2. Bu güvenli mesafe içinde halihazırda engeli olan şeritleri tespit et
+  const recentlyOccupied = new Set(
+    entities
+      .filter((e) => e.type === "obstacle" && e.y < safeDistance)
+      .map((e) => e.lane)
+  );
+
+  // 3. EN ÖNEMLİ KISIM: Eğer son mesafede zaten 2 farklı şeritte engel varsa,
+  // 3. ve son boş şeride engel koymayı kesinlikle yasaklıyoruz.
+  let availableLanes = lanes.filter((l) => {
+    // Eğer 2 şerit doluysa ve bu şerit onlardan biri değilse (yani tek kalan 3. boş şeritse)
+    if (recentlyOccupied.size >= 2 && !recentlyOccupied.has(l)) {
+      return false; // Çapraz duvar oluşmaması için bu şeridi listeden çıkar
+    }
+    return true;
+  });
+
+  // 4. Aynı şeritte engellerin üst üste binmesini engelleyen mesafe
+  const combineThreshold = playerH + 30;
+  const strictlyOccupied = new Set(
     entities
       .filter((e) => e.type === "obstacle" && e.y < combineThreshold)
       .map((e) => e.lane)
   );
-  const freeLanes = lanes.filter((l) => !occupiedLanes.has(l));
+
+  // Tamamen müsait olan şeritler
+  const freeLanes = availableLanes.filter((l) => !strictlyOccupied.has(l));
 
   let obstaclesToAdd = 0;
-  if (freeLanes.length >= 2) {
-    const maxAddable = freeLanes.length - 2; // en az 1 şerit hep dokunulmadan kalsın
+  if (freeLanes.length > 0) {
     const roll = Math.random();
-    if (roll < 0.12) obstaclesToAdd = 0;
-    else if (roll < 0.5 || maxAddable < 2) obstaclesToAdd = 1;
-    else obstaclesToAdd = 2;
+    if (roll < 0.15) {
+      obstaclesToAdd = 0; // %15 ihtimalle pas geç
+    } 
+    // Eğer etrafta (safeDistance içinde) HİÇ engel yoksa, yan yana 2 engel atılabilir
+    else if (roll > 0.8 && freeLanes.length >= 2 && recentlyOccupied.size === 0) {
+      obstaclesToAdd = 2;
+    } 
+    else {
+      obstaclesToAdd = 1; // Genelde tek engel atarak yolu açık bırak
+    }
   }
 
+  // Şeritleri rastgele seç ve engelleri ekle
   const shuffledFree = [...freeLanes].sort(() => Math.random() - 0.5);
   const chosenLanes = shuffledFree.slice(0, obstaclesToAdd);
+
   chosenLanes.forEach((l) => entities.push({ type: "obstacle", lane: l, y: -80 }));
 
-  // yol boyunca toplam kalp sayısı sabit (TOTAL_HEARTS) — tükenince sadece engel gelir
+  // Kalp ekleme (sadece engelsiz şeritlere)
   if (heartsSpawned < TOTAL_HEARTS && Math.random() < 0.45) {
     const heartCandidates = lanes.filter((l) => !chosenLanes.includes(l));
-    const heartLane = heartCandidates[Math.floor(Math.random() * heartCandidates.length)];
-    entities.push({ type: "heart", lane: heartLane, y: -80 });
-    heartsSpawned++;
+    if (heartCandidates.length > 0) {
+      const heartLane = heartCandidates[Math.floor(Math.random() * heartCandidates.length)];
+      entities.push({ type: "heart", lane: heartLane, y: -80 });
+      heartsSpawned++;
+    }
   }
 }
 
@@ -329,7 +370,7 @@ function update() {
   });
   entities = entities.filter((e) => !(e.hit && e.type === "heart"));
 
-  // Şehir geçişleri — durmadan, tek seferde Hatay -> İstanbul -> Bandırma
+  // Şehir geçişleri
   const newStageIndex = Math.min(Math.floor(distance / STAGE_LENGTH), STAGES.length - 1);
   if (newStageIndex !== stageIndex) {
     stageIndex = newStageIndex;
@@ -346,22 +387,25 @@ function update() {
 function triggerGameOver() {
   state = "gameover";
   cancelLoop();
-  document.getElementById("gameover-stage").textContent =
-    `Vardığın durak: ${STAGES[stageIndex].name}`;
-  document.getElementById("gameover-hearts").textContent = hearts;
+  const goStage = document.getElementById("gameover-stage");
+  const goHearts = document.getElementById("gameover-hearts");
+  if(goStage) goStage.textContent = `Vardığın durak: ${STAGES[stageIndex].name}`;
+  if(goHearts) goHearts.textContent = hearts;
   showScreen("gameover");
 }
 
 function triggerWin() {
   state = "win";
   cancelLoop();
-  document.getElementById("win-hearts").textContent = `${hearts} / ${TOTAL_HEARTS}`;
+  const winHearts = document.getElementById("win-hearts");
+  if(winHearts) winHearts.textContent = `${hearts} / ${TOTAL_HEARTS}`;
   renderScoreboard(hearts);
   showScreen("win");
 }
 
 function renderScoreboard(collected) {
   const board = document.getElementById("love-scoreboard");
+  if(!board) return;
   board.innerHTML = "";
   LOVE_TIERS.forEach((tier) => {
     const isActive = collected >= tier.min && collected <= tier.max;
@@ -483,9 +527,6 @@ function drawHeart(x, y) {
   ctx.fill();
 }
 
-// Üstü açık araba — yolcular hikayeye göre değişir:
-// Hatay'da yalnız kız, Bandırma'dan itibaren o da yanında,
-// İstanbul'dan itibaren arkada kumral kıvırcık küçük kız.
 function drawCar(cx, y, w, h, occupants) {
   ctx.save();
   ctx.translate(cx, y);
@@ -501,7 +542,6 @@ function drawCar(cx, y, w, h, occupants) {
 
   const hasBackSeat = occupants.length === 3;
   const cabinH = hasBackSeat ? h * 0.5 : h * 0.36;
-  // kabin (üstü açık, koltuk alanı) — koyu saçların seçilebilmesi için açık renk
   ctx.fillStyle = "#f3e0c5";
   roundRect(-w * 0.35, h * 0.13, w * 0.7, cabinH, w * 0.12);
   ctx.fill();
@@ -529,7 +569,6 @@ function drawCar(cx, y, w, h, occupants) {
   ctx.restore();
 }
 
-// type: "girl" (kıvırcık, hafif esmer) | "guy" (kumral, koyu yeşil göz) | "child" (kumral, kıvırcık, küçük kız)
 function drawMiniHead(x, y, r, type) {
   const isCurly = type === "girl" || type === "child";
   const skin = type === "girl" ? "#c98a5e" : type === "guy" ? "#e0a978" : "#d9a679";
@@ -539,8 +578,6 @@ function drawMiniHead(x, y, r, type) {
   ctx.save();
   ctx.translate(x, y);
   if (isCurly) {
-    // kıvırcık saç — kızda tepeden çeneye/boyuna iniyor, çocukta papatya gibi
-    // durmasın diye daha kısa/sık ve başa yakın
     const curlCount = type === "child" ? 6 : 10;
     const curlDist = type === "child" ? r * 0.9 : r * 1.05;
     const curlSize = type === "child" ? r * 0.24 : r * 0.34;
@@ -554,7 +591,6 @@ function drawMiniHead(x, y, r, type) {
       ctx.fill();
     }
   } else {
-    // düz kumral saç — yanlar kısa (başa yakın), tepe uzun/dolgun (fırça/tepelik gibi)
     ctx.fillStyle = hair;
     const hairAngleStart = Math.PI * 0.85;
     const hairAngleEnd = Math.PI * 2.15;
@@ -563,7 +599,7 @@ function drawMiniHead(x, y, r, type) {
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
       const angle = hairAngleStart + t * (hairAngleEnd - hairAngleStart);
-      const bulge = Math.sin(t * Math.PI); // kenarlarda 0 (kısa), tepede 1 (uzun)
+      const bulge = Math.sin(t * Math.PI);
       const radius = r * (1.04 + bulge * 0.62);
       const px = Math.cos(angle) * radius;
       const py = Math.sin(angle) * radius;
@@ -637,10 +673,6 @@ function loop() {
   }
   update();
   draw();
-  // update() sırasında gameover/win tetiklenmiş olabilir — durum artık
-  // "playing" değilse döngüyü burada durdurup rafId'yi temizlemeliyiz,
-  // yoksa "tekrar dene" butonu (rafId dolu göründüğü için) döngüyü
-  // yeniden başlatamıyordu.
   if (state === "playing") {
     rafId = requestAnimationFrame(loop);
   } else {
