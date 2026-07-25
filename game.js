@@ -90,29 +90,46 @@ const SIGN_GAP = 500; // tabelalar arası mesafe
 
 const TOTAL_HEARTS = 20; // yol boyunca toplam sabit kalp sayısı
 
+const MIN_SPAWN_GAP = 100; // ardışık iki engel sırası arası en az mesafe
 
+const MAX_SPAWN_GAP = 180; // ardışık iki engel sırası arası en fazla mesafe
+
+
+
+const ECE_EMOJI = "👩🏻‍🦱";
+const ENES_EMOJI = "👨🏻";
 
 const STORY_LINES = [
 
-  "Merhaba, ben Ece.",
+  { speaker: "ece", text: "Merhaba, ben Ece." },
 
-  "Hataylıyım.",
+  { speaker: "ece", text: "Hataylıyım." },
 
-  "Üniversite için Bandırma'ya gittim.",
+  { speaker: "ece", text: "Üniversite için Bandırma'ya gittim." },
 
-  "Orada hayatımın aşkıyla tanıştım.",
+  { speaker: "ece", text: "Orada hayatımın aşkıyla tanıştım." },
 
-  "Onunla hep hayalim evlenip çocuk sahibi olmaktı.",
+  { speaker: "ece", text: "Onunla hep hayalim evlenip çocuk sahibi olmaktı." },
 
-  "Ama bizim yolumuz hiç kolay değil.",
+  { speaker: "ece", text: "Ama bizim yolumuz hiç kolay değil." },
 
-  "Çok zorlu, çok engel var.",
+  { speaker: "ece", text: "Çok zorlu, çok engel var." },
 
-  "Yine de hepsini aşacağımızı biliyorum.",
+  { speaker: "enes", text: "Ben Enes." },
 
-  "Sadece senin yardımın gerekli.",
+  {
+    speaker: "enes",
+    type: "choice",
+    text: "İstersen senin yolundaki bütün engelleri temizleyebilirim.",
+    yesText: "Tamam, ben yolumuzdaki engelleri kaldırıyorum. Sen sadece bana sevgini ver, kalpleri topla.",
+    noText: "Tamam, ben engelleri kaldırırken yanında olacağım, beraber aşacağız.",
+  },
 
-  "Bu hikayemde yolculuğumu tamamlamama yardım eder misin?",
+  { speaker: "ece", text: "Yine de hepsini aşacağımızı biliyorum." },
+
+  { speaker: "ece", text: "Sadece senin yardımın gerekli." },
+
+  { speaker: "ece", text: "Bu hikayemde yolculuğumu tamamlamama yardım eder misin?" },
 
 ];
 
@@ -179,6 +196,8 @@ let playerW = 0;
 let playerH = 0;
 
 let playerY = 0;
+
+let helpEnabled = false; // Enes'e "evet" dendiyse true — oyun boyunca hiç engel çıkmaz
 
 
 
@@ -255,18 +274,51 @@ muteBtn.addEventListener("click", (e) => {
 // ====== HİKAYE (oyundan önce, cümle cümle) ======
 
 let storyIndex = 0;
+let storyChoiceMade = false; // Enes'in sorusuna evet/hayır cevabı verildi mi
+
+const storyEmojiEl = document.getElementById("story-emoji");
+const storyTextEl = document.getElementById("story-text");
+const storyHintEl = document.getElementById("story-hint");
+const storyChoicesEl = document.getElementById("story-choices");
 
 
 
 function renderStory() {
 
-  document.getElementById("story-text").textContent = STORY_LINES[storyIndex];
+  const entry = STORY_LINES[storyIndex];
+
+  storyEmojiEl.textContent = entry.speaker === "enes" ? ENES_EMOJI : ECE_EMOJI;
+
+  if (entry.type === "choice" && !storyChoiceMade) {
+
+    storyTextEl.textContent = entry.text;
+
+    storyHintEl.style.display = "none";
+
+    storyChoicesEl.style.display = "flex";
+
+  } else {
+
+    storyTextEl.textContent =
+      entry.type === "choice" ? (helpEnabled ? entry.yesText : entry.noText) : entry.text;
+
+    storyHintEl.style.display = "";
+
+    storyChoicesEl.style.display = "none";
+
+  }
 
 }
 
 
 
 function advanceStory() {
+
+  const entry = STORY_LINES[storyIndex];
+
+  if (!entry) return; // hikaye zaten bitmiş
+
+  if (entry.type === "choice" && !storyChoiceMade) return; // önce Evet/Hayır seçilmeli
 
   storyIndex++;
 
@@ -284,11 +336,43 @@ function advanceStory() {
 
 
 
+function chooseHelp(yes) {
+
+  helpEnabled = yes;
+
+  storyChoiceMade = true;
+
+  renderStory();
+
+}
+
+
+
 document.getElementById("screen-story").addEventListener("click", () => {
 
   startMusic();
 
   advanceStory();
+
+});
+
+document.getElementById("btn-story-yes").addEventListener("click", (e) => {
+
+  e.stopPropagation();
+
+  startMusic();
+
+  chooseHelp(true);
+
+});
+
+document.getElementById("btn-story-no").addEventListener("click", (e) => {
+
+  e.stopPropagation();
+
+  startMusic();
+
+  chooseHelp(false);
 
 });
 
@@ -509,11 +593,18 @@ document.getElementById("btn-replay-win").addEventListener("click", () => {
 
 // bu da 2 şeridi çok erken "kilitleyip" yolu gereksiz yere boşaltıyordu.)
 
+//
+// combineThreshold, ardışık iki spawn arasındaki mesafeden (en fazla
+// MAX_SPAWN_GAP) küçük olmamalı. Sadece playerH'ye dayanınca (küçük
+// ekranlarda playerH da küçük olduğu için) bir önceki sıra çok erken
+// "eskimiş" sayılıyor, yeni sıra onun şeridini de kullanabiliyor ve
+// üst üste gelen iki sıra birlikte 3 şeridi birden kapatıp hiçbir
+// türlü geçilemeyen çapraz bir duvar oluşturabiliyordu.
 function spawnEntity() {
 
   const lanes = [0, 1, 2];
 
-  const combineThreshold = playerH + 30; // playerH + 80 (pencere) - 80 (spawn farkı) + pay
+  const combineThreshold = Math.max(playerH + 30, MAX_SPAWN_GAP + 20);
 
   const occupiedLanes = new Set(
 
@@ -529,13 +620,15 @@ function spawnEntity() {
 
 
 
-  let obstaclesToAdd = 0;
+  let chosenLanes = [];
 
-  if (freeLanes.length >= 2) {
+  if (!helpEnabled && freeLanes.length >= 2) {
 
     const maxAddable = freeLanes.length - 3; // en az 1 şerit hep dokunulmadan kalsın
 
     const roll = Math.random();
+
+    let obstaclesToAdd = 0;
 
     if (roll < 0.12) obstaclesToAdd = 0;
 
@@ -543,15 +636,13 @@ function spawnEntity() {
 
     else obstaclesToAdd = 2;
 
+    const shuffledFree = [...freeLanes].sort(() => Math.random() - 0.5);
+
+    chosenLanes = shuffledFree.slice(0, obstaclesToAdd);
+
+    chosenLanes.forEach((l) => entities.push({ type: "obstacle", lane: l, y: -80 }));
+
   }
-
-
-
-  const shuffledFree = [...freeLanes].sort(() => Math.random() - 0.5);
-
-  const chosenLanes = shuffledFree.slice(0, obstaclesToAdd);
-
-  chosenLanes.forEach((l) => entities.push({ type: "obstacle", lane: l, y: -80 }));
 
 
 
@@ -601,7 +692,7 @@ function update() {
 
     distSinceSpawn = 0;
 
-    nextSpawnAt = 100 + Math.random() * 80;
+    nextSpawnAt = MIN_SPAWN_GAP + Math.random() * (MAX_SPAWN_GAP - MIN_SPAWN_GAP);
 
     spawnEntity();
 

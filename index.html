@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <meta name="robots" content="noindex, nofollow" />
 <title>yol arkadaşı</title>
-<link rel="stylesheet" href="game.css?v=9" />
+<link rel="stylesheet" href="game.css?v=10" />
 </head>
 <body>
 
@@ -17,9 +17,13 @@
   <!-- HİKAYE -->
   <section id="screen-story" class="g-screen active">
     <div class="g-panel">
-      <div class="story-emoji">👩🏻‍🦱</div>
+      <div class="story-emoji" id="story-emoji">👩🏻‍🦱</div>
       <p class="story-text" id="story-text"></p>
-      <p class="g-hint">Devam etmek için dokun</p>
+      <div class="story-choices" id="story-choices">
+        <button class="story-choice-btn story-choice-yes" id="btn-story-yes">Evet</button>
+        <button class="story-choice-btn story-choice-no" id="btn-story-no">Hayır</button>
+      </div>
+      <p class="g-hint" id="story-hint">Devam etmek için dokun</p>
     </div>
   </section>
 
@@ -72,6 +76,6 @@
 
 </div>
 
-<script src="game.js?v=9"></script>
+<script src="game.js?v=10"></script>
 </body>
 </html>
