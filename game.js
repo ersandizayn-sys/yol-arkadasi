@@ -97,7 +97,7 @@ const MAX_SPAWN_GAP = 180; // ardışık iki engel sırası arası en fazla mesa
 
 
 const ECE_EMOJI = "👩🏻‍🦱";
-const ENES_EMOJI = "👨🏻";
+const ENES_EMOJI = "🧔🏻";
 
 const STORY_LINES = [
 
@@ -1271,6 +1271,30 @@ function drawMiniHead(x, y, r, type) {
   ctx.arc(r * 0.32, -r * 0.05, r * 0.12, 0, Math.PI * 2);
 
   ctx.fill();
+
+  if (type === "guy") {
+
+    // sakal — gözlerin altından çeneye, kumral saçla aynı tonda
+
+    ctx.save();
+
+    ctx.beginPath();
+
+    ctx.rect(-r * 1.1, r * 0.08, r * 2.2, r * 1.3);
+
+    ctx.clip();
+
+    ctx.fillStyle = hair;
+
+    ctx.beginPath();
+
+    ctx.arc(0, r * 0.05, r * 1.08, 0, Math.PI * 2);
+
+    ctx.fill();
+
+    ctx.restore();
+
+  }
 
   ctx.restore();
 
