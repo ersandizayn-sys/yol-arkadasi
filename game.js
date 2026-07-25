@@ -300,7 +300,9 @@ function spawnEntity() {
   const freeLanes = availableLanes.filter((l) => !strictlyOccupied.has(l));
 
   let obstaclesToAdd = 0;
-  if (freeLanes.length > 0) {
+  
+  // EĞER ENGELLER AÇIKSA VE BOŞ ŞERİT VARSA ENGEL EKLENECEK
+  if (ENABLE_OBSTACLES && freeLanes.length > 0) {
     const roll = Math.random();
     if (roll < 0.15) {
       obstaclesToAdd = 0; // %15 ihtimalle pas geç
@@ -314,13 +316,13 @@ function spawnEntity() {
     }
   }
 
-  // Şeritleri rastgele seç ve engelleri ekle
+  // Şeritleri rastgele seç ve engelleri ekle (Engeller kapalıysa chosenLanes boş olur)
   const shuffledFree = [...freeLanes].sort(() => Math.random() - 0.5);
   const chosenLanes = shuffledFree.slice(0, obstaclesToAdd);
 
   chosenLanes.forEach((l) => entities.push({ type: "obstacle", lane: l, y: -80 }));
 
-  // Kalp ekleme (sadece engelsiz şeritlere)
+  // Kalp ekleme (sadece engelsiz şeritlere gelmeye devam eder)
   if (heartsSpawned < TOTAL_HEARTS && Math.random() < 0.45) {
     const heartCandidates = lanes.filter((l) => !chosenLanes.includes(l));
     if (heartCandidates.length > 0) {
@@ -328,121 +330,6 @@ function spawnEntity() {
       entities.push({ type: "heart", lane: heartLane, y: -80 });
       heartsSpawned++;
     }
-  }
-}
-
-function spawnSign() {
-  const onLeft = Math.random() < 0.5;
-  const x = onLeft ? roadX0 - shoulderWidth * 0.5 : roadX0 + roadWidth + shoulderWidth * 0.5;
-  signs.push({ x, y: -100, text: STAGES[stageIndex].name });
-}
-
-// ====== GÜNCELLE ======
-function update() {
-  distance += speed;
-  distSinceSpawn += speed;
-  distSinceSign += speed;
-
-  if (distSinceSpawn >= nextSpawnAt) {
-    distSinceSpawn = 0;
-    nextSpawnAt = 100 + Math.random() * 80;
-    spawnEntity();
-  }
-
-  if (distSinceSign >= SIGN_GAP) {
-    distSinceSign = 0;
-    spawnSign();
-  }
-
-  if (cityBannerFrames > 0) cityBannerFrames--;
-
-  currentX += (laneCenterX(lane) - currentX) * 0.22;
-
-  const h = canvas.height / Math.min(window.devicePixelRatio || 1, 2);
-  entities.forEach((e) => (e.y += speed));
-  entities = entities.filter((e) => e.y < h + 100);
-
-  signs.forEach((s) => (s.y += speed));
-  signs = signs.filter((s) => s.y < h + 100);
-
-  entities.forEach((e) => {
-    if (e.hit) return;
-    const ex = laneCenterX(e.lane);
-    const overlapX = Math.abs(ex - currentX) < (playerW + laneWidth * 0.5) / 2;
-    const overlapY = e.y + 40 > playerY && e.y - 40 < playerY + playerH;
-    if (overlapX && overlapY) {
-      e.hit = true;
-      if (e.type === "heart") {
-        hearts++;
-        updateHud();
-      } else {
-        triggerGameOver();
-      }
-    }
-  });
-  entities = entities.filter((e) => !(e.hit && e.type === "heart"));
-
-  // Şehir geçişleri
-  const newStageIndex = Math.min(Math.floor(distance / STAGE_LENGTH), STAGES.length - 1);
-  if (newStageIndex !== stageIndex) {
-    stageIndex = newStageIndex;
-    speed *= SPEED_GROWTH;
-    cityBannerFrames = CITY_BANNER_FRAMES;
-    updateHud();
-  }
-
-  if (distance >= STAGE_LENGTH * STAGES.length) {
-    triggerWin();
-  }
-}
-
-function triggerGameOver() {
-  state = "gameover";
-  cancelLoop();
-  const goStage = document.getElementById("gameover-stage");
-  const goHearts = document.getElementById("gameover-hearts");
-  if(goStage) goStage.textContent = `Vardığın durak: ${STAGES[stageIndex].name}`;
-  if(goHearts) goHearts.textContent = hearts;
-  showScreen("gameover");
-}
-
-function triggerWin() {
-  state = "win";
-  cancelLoop();
-  const winHearts = document.getElementById("win-hearts");
-  if(winHearts) winHearts.textContent = `${hearts} / ${TOTAL_HEARTS}`;
-  renderScoreboard(hearts);
-  showScreen("win");
-}
-
-function renderScoreboard(collected) {
-  const board = document.getElementById("love-scoreboard");
-  if(!board) return;
-  board.innerHTML = "";
-  LOVE_TIERS.forEach((tier) => {
-    const isActive = collected >= tier.min && collected <= tier.max;
-    const row = document.createElement("div");
-    row.className = "scoreboard-row" + (isActive ? " active" : "");
-    if (isActive) {
-      row.style.background = tier.color;
-      row.style.color = "#2b1b2f";
-    }
-    const range = document.createElement("span");
-    range.className = "scoreboard-range";
-    range.textContent = `${tier.min}-${tier.max}`;
-    const label = document.createElement("span");
-    label.className = "scoreboard-label";
-    label.textContent = tier.label;
-    row.appendChild(range);
-    row.appendChild(label);
-    board.appendChild(row);
-  });
-}
-
-function cancelLoop() {
-  if (rafId) {
-    cancelAnimationFrame(rafId);
-    rafId = null;
   }
 }
 
