@@ -36,18 +36,19 @@ const STAGES = [
     note: "Hep birlikte eve dönüyoruz ✦",
   },
 ];
-const STAGE_LENGTH = 3000; // bir şehri geçmek için gereken mesafe (yol uzatıldı)
+const STAGE_LENGTH = 3000; 
 const BASE_SPEED = 3.3;
-const SPEED_GROWTH = 1.1; // şehir değişince hız artışı
+const SPEED_GROWTH = 1.1; 
 const LANES = 3;
-const ROAD_WIDTH_RATIO = 0.78; // yolun ekran genişliğine oranı (kalan kısım kenar/tabela alanı)
-const CITY_BANNER_FRAMES = 130; // şehir ismi ortada kaç kare görünsün
-const SIGN_GAP = 500; // tabelalar arası mesafe
-const TOTAL_HEARTS = 20; // yol boyunca toplam sabit kalp sayısı
+const ROAD_WIDTH_RATIO = 0.78; 
+const CITY_BANNER_FRAMES = 130; 
+const SIGN_GAP = 500; 
+const TOTAL_HEARTS = 20; 
 
 // ==========================================
 // ENGEL AÇMA/KAPAMA AYARI
-let ENABLE_OBSTACLES = false; // Engelleri açmak için false yerine true yapın.
+// Engeller kapalı. Açmak istersen true yapabilirsin.
+let ENABLE_OBSTACLES = false; 
 
 function setObstacles(state) {
   ENABLE_OBSTACLES = state;
@@ -77,7 +78,7 @@ const LOVE_TIERS = [
 
 // ====== DURUM ======
 let canvas, ctx;
-let state = "start"; // start | playing | gameover | win
+let state = "start"; 
 let lane = 1;
 let currentX = 0;
 let distance = 0;
@@ -85,8 +86,8 @@ let stageIndex = 0;
 let hearts = 0;
 let heartsSpawned = 0;
 let speed = BASE_SPEED;
-let entities = []; // {type: 'obstacle'|'heart', lane, y}
-let signs = []; // {x, y, text}
+let entities = []; 
+let signs = []; 
 let distSinceSpawn = 0;
 let nextSpawnAt = 140;
 let distSinceSign = 0;
@@ -109,8 +110,10 @@ const screens = {
 };
 
 function showScreen(key) {
-  Object.values(screens).forEach((s) => s.classList.remove("active"));
-  screens[key].classList.add("active");
+  Object.values(screens).forEach((s) => {
+    if (s) s.classList.remove("active");
+  });
+  if (screens[key]) screens[key].classList.add("active");
 }
 
 // ====== MÜZİK ======
@@ -121,25 +124,33 @@ let musicStarted = false;
 function startMusic() {
   if (musicStarted) return;
   musicStarted = true;
-  bgMusic.volume = 0.55;
-  bgMusic.play().catch(() => {
-    // tarayıcı otomatik oynatmayı engellediyse bir sonraki dokunuşta tekrar denenecek
-    musicStarted = false;
+  
+  // HTML'de müzik dosyası yoksa kodun çökmesini engeller!
+  if (bgMusic) {
+    bgMusic.volume = 0.55;
+    bgMusic.play().catch(() => {
+      musicStarted = false;
+    });
+  }
+}
+
+if (muteBtn) {
+  muteBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    startMusic();
+    if (bgMusic) {
+      bgMusic.muted = !bgMusic.muted;
+      muteBtn.textContent = bgMusic.muted ? "🔇" : "🔊";
+    }
   });
 }
 
-muteBtn.addEventListener("click", (e) => {
-  e.stopPropagation();
-  startMusic();
-  bgMusic.muted = !bgMusic.muted;
-  muteBtn.textContent = bgMusic.muted ? "🔇" : "🔊";
-});
-
-// ====== HİKAYE (oyundan önce, cümle cümle) ======
+// ====== HİKAYE ======
 let storyIndex = 0;
 
 function renderStory() {
-  document.getElementById("story-text").textContent = STORY_LINES[storyIndex];
+  const storyText = document.getElementById("story-text");
+  if (storyText) storyText.textContent = STORY_LINES[storyIndex];
 }
 
 function advanceStory() {
@@ -151,21 +162,26 @@ function advanceStory() {
   }
 }
 
-document.getElementById("screen-story").addEventListener("click", () => {
-  startMusic();
-  advanceStory();
-});
+const screenStory = document.getElementById("screen-story");
+if (screenStory) {
+  screenStory.addEventListener("click", () => {
+    startMusic();
+    advanceStory();
+  });
+}
 renderStory();
 
 // ====== KURULUM ======
 function setupCanvas() {
   canvas = document.getElementById("game-canvas");
+  if (!canvas) return;
   ctx = canvas.getContext("2d");
   resizeCanvas();
   window.addEventListener("resize", resizeCanvas);
 }
 
 function resizeCanvas() {
+  if (!canvas) return;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = window.innerWidth;
   const h = window.innerHeight;
@@ -215,8 +231,10 @@ function startPlaying() {
 }
 
 function updateHud() {
-  document.getElementById("hud-stage").textContent = STAGES[stageIndex].name.toUpperCase();
-  document.getElementById("hud-hearts").textContent = `♥ ${hearts}/${TOTAL_HEARTS}`;
+  const stage = document.getElementById("hud-stage");
+  const hrs = document.getElementById("hud-hearts");
+  if(stage) stage.textContent = STAGES[stageIndex].name.toUpperCase();
+  if(hrs) hrs.textContent = `♥ ${hearts}/${TOTAL_HEARTS}`;
 }
 
 // ====== GİRİŞ ======
@@ -230,45 +248,35 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "ArrowRight") changeLane(1);
 });
 
-document.getElementById("touch-left").addEventListener("click", () => changeLane(-1));
-document.getElementById("touch-right").addEventListener("click", () => changeLane(1));
+const tLeft = document.getElementById("touch-left");
+const tRight = document.getElementById("touch-right");
+if (tLeft) tLeft.addEventListener("click", () => changeLane(-1));
+if (tRight) tRight.addEventListener("click", () => changeLane(1));
 
-document.getElementById("btn-start").addEventListener("click", () => {
-  resetGame();
-  startPlaying();
-});
-document.getElementById("btn-replay").addEventListener("click", () => {
-  resetGame();
-  startPlaying();
-});
-document.getElementById("btn-replay-win").addEventListener("click", () => {
-  resetGame();
-  startPlaying();
-});
+const bStart = document.getElementById("btn-start");
+const bReplay = document.getElementById("btn-replay");
+const bReplayWin = document.getElementById("btn-replay-win");
 
-// ====== SPAWN (GÜNCELLENDİ) ======
+if (bStart) bStart.addEventListener("click", () => { resetGame(); startPlaying(); });
+if (bReplay) bReplay.addEventListener("click", () => { resetGame(); startPlaying(); });
+if (bReplayWin) bReplayWin.addEventListener("click", () => { resetGame(); startPlaying(); });
+
+// ====== SPAWN ======
 function spawnEntity() {
   const lanes = [0, 1, 2];
-  
-  // 1. Oyuncunun çapraz engeller arasından manevra yapabilmesi için gereken güvenli dikey mesafe.
   const safeDistance = playerH * 3.5 + 80;
 
-  // 2. Bu güvenli mesafe içinde halihazırda engeli olan şeritleri tespit et
   const recentlyOccupied = new Set(
     entities
       .filter((e) => e.type === "obstacle" && e.y < safeDistance)
       .map((e) => e.lane)
   );
 
-  // 3. EN ÖNEMLİ KISIM: 3'lü barikatı önleme
   let availableLanes = lanes.filter((l) => {
-    if (recentlyOccupied.size >= 2 && !recentlyOccupied.has(l)) {
-      return false; 
-    }
+    if (recentlyOccupied.size >= 2 && !recentlyOccupied.has(l)) return false; 
     return true;
   });
 
-  // 4. Aynı şeritte engellerin üst üste binmesini önleme
   const combineThreshold = playerH + 30;
   const strictlyOccupied = new Set(
     entities
@@ -279,7 +287,6 @@ function spawnEntity() {
   const freeLanes = availableLanes.filter((l) => !strictlyOccupied.has(l));
   let obstaclesToAdd = 0;
   
-  // EĞER ENGELLER AÇIKSA VE BOŞ ŞERİT VARSA ENGEL EKLENECEK
   if (ENABLE_OBSTACLES && freeLanes.length > 0) {
     const roll = Math.random();
     if (roll < 0.15) {
@@ -375,21 +382,25 @@ function update() {
 function triggerGameOver() {
   state = "gameover";
   cancelLoop();
-  document.getElementById("gameover-stage").textContent = `Vardığın durak: ${STAGES[stageIndex].name}`;
-  document.getElementById("gameover-hearts").textContent = hearts;
+  const stg = document.getElementById("gameover-stage");
+  const hrt = document.getElementById("gameover-hearts");
+  if(stg) stg.textContent = `Vardığın durak: ${STAGES[stageIndex].name}`;
+  if(hrt) hrt.textContent = hearts;
   showScreen("gameover");
 }
 
 function triggerWin() {
   state = "win";
   cancelLoop();
-  document.getElementById("win-hearts").textContent = `${hearts} / ${TOTAL_HEARTS}`;
+  const wh = document.getElementById("win-hearts");
+  if(wh) wh.textContent = `${hearts} / ${TOTAL_HEARTS}`;
   renderScoreboard(hearts);
   showScreen("win");
 }
 
 function renderScoreboard(collected) {
   const board = document.getElementById("love-scoreboard");
+  if(!board) return;
   board.innerHTML = "";
   LOVE_TIERS.forEach((tier) => {
     const isActive = collected >= tier.min && collected <= tier.max;
