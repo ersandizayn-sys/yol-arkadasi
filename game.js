@@ -258,7 +258,7 @@ function spawnEntity() {
 
   let obstaclesToAdd = 0;
   if (freeLanes.length >= 2) {
-    const maxAddable = freeLanes.length - 3; // en az 1 şerit hep dokunulmadan kalsın
+    const maxAddable = freeLanes.length - 2; // en az 1 şerit hep dokunulmadan kalsın
     const roll = Math.random();
     if (roll < 0.12) obstaclesToAdd = 0;
     else if (roll < 0.5 || maxAddable < 2) obstaclesToAdd = 1;
