@@ -448,9 +448,24 @@ document.addEventListener("keydown", (e) => {
 
 
 
-document.getElementById("touch-left").addEventListener("click", () => changeLane(-1));
+// Mobil taraycılarda (özellikle iOS Safari) generic <div>'lerde "click"
+// event'i gecikmeli/güvenilmez olabiliyor — dokunma anında tepki vermesi
+// için "touchstart" da dinleniyor; preventDefault ile ardından gelen
+// sentetik click bastırılıp çift tetiklenme önleniyor.
+function bindTap(el, handler) {
+  el.addEventListener(
+    "touchstart",
+    (e) => {
+      e.preventDefault();
+      handler();
+    },
+    { passive: false }
+  );
+  el.addEventListener("click", handler);
+}
 
-document.getElementById("touch-right").addEventListener("click", () => changeLane(1));
+bindTap(document.getElementById("touch-left"), () => changeLane(-1));
+bindTap(document.getElementById("touch-right"), () => changeLane(1));
 
 
 
