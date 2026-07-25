@@ -94,6 +94,8 @@ const MIN_SPAWN_GAP = 100; // ardışık iki engel sırası arası en az mesafe
 
 const MAX_SPAWN_GAP = 180; // ardışık iki engel sırası arası en fazla mesafe
 
+const ECE_EMOJI = "👩🏻‍🦱";
+
 
 
 const STORY_LINES = [
@@ -273,15 +275,16 @@ muteBtn.addEventListener("click", (e) => {
 let storyIndex = 0;
 let storyChoiceMade = false; // Enes'in sorusuna evet/hayır cevabı verildi mi
 
+const storyEmojiEl = document.getElementById("story-emoji");
 const storyPortraitCanvas = document.getElementById("story-portrait");
 const storyPortraitCtx = storyPortraitCanvas.getContext("2d");
 const storyTextEl = document.getElementById("story-text");
 const storyHintEl = document.getElementById("story-hint");
 const storyChoicesEl = document.getElementById("story-choices");
 
-// Hikaye ekranındaki portre, arabada çizilenle (drawMiniHead) aynı fonksiyonu
-// kullanıyor — böylece Enes'in kumral saçı/koyu yeşil gözü emoji yerine
-// arabadakiyle birebir aynı renkte görünüyor.
+// Ece emoji ile gösteriliyor (ilk emoji beğenilmişti). Enes'in emojisi
+// sabit siyah saçlı kaldığı için onun kumral saçı/koyu yeşil gözü/sakalı,
+// arabada çizilenle (drawMiniHead) aynı fonksiyon kullanılarak çiziliyor.
 function drawStoryPortrait(type) {
 
   const prevCtx = ctx;
@@ -302,7 +305,23 @@ function renderStory() {
 
   const entry = STORY_LINES[storyIndex];
 
-  drawStoryPortrait(entry.speaker === "enes" ? "guy" : "girl");
+  if (entry.speaker === "enes") {
+
+    storyEmojiEl.style.display = "none";
+
+    storyPortraitCanvas.style.display = "";
+
+    drawStoryPortrait("guy");
+
+  } else {
+
+    storyPortraitCanvas.style.display = "none";
+
+    storyEmojiEl.style.display = "";
+
+    storyEmojiEl.textContent = ECE_EMOJI;
+
+  }
 
   if (entry.type === "choice" && !storyChoiceMade) {
 
