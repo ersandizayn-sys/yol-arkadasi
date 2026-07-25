@@ -103,6 +103,28 @@ function showScreen(key) {
   screens[key].classList.add("active");
 }
 
+// ====== MÜZİK ======
+const bgMusic = document.getElementById("bg-music");
+const muteBtn = document.getElementById("btn-mute");
+let musicStarted = false;
+
+function startMusic() {
+  if (musicStarted) return;
+  musicStarted = true;
+  bgMusic.volume = 0.55;
+  bgMusic.play().catch(() => {
+    // tarayıcı otomatik oynatmayı engellediyse bir sonraki dokunuşta tekrar denenecek
+    musicStarted = false;
+  });
+}
+
+muteBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  startMusic();
+  bgMusic.muted = !bgMusic.muted;
+  muteBtn.textContent = bgMusic.muted ? "🔇" : "🔊";
+});
+
 // ====== HİKAYE (oyundan önce, cümle cümle) ======
 let storyIndex = 0;
 
@@ -119,7 +141,10 @@ function advanceStory() {
   }
 }
 
-document.getElementById("screen-story").addEventListener("click", advanceStory);
+document.getElementById("screen-story").addEventListener("click", () => {
+  startMusic();
+  advanceStory();
+});
 renderStory();
 
 // ====== KURULUM ======
