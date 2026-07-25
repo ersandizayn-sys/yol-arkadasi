@@ -48,7 +48,7 @@ const TOTAL_HEARTS = 20; // yol boyunca toplam sabit kalp sayısı
 
 // ==========================================
 // ENGEL AÇMA/KAPAMA AYARI
-let ENABLE_OBSTACLES = true; // Bunu false yaparsan engeller tamamen kapanır.
+let ENABLE_OBSTACLES = false; // Bunu false yaparsan engeller tamamen kapanır.
 
 // İstersen oyun oynanırken konsoldan setObstacles(false) yazarak da kapatabilirsin.
 function setObstacles(state) {
