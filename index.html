@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="robots" content="noindex, nofollow" />
+<title>yol arkadaşı</title>
+<link rel="stylesheet" href="game.css?v=8" />
+</head>
+<body>
+
+<div id="game-app">
+
+  <!-- HİKAYE -->
+  <section id="screen-story" class="g-screen active">
+    <div class="g-panel">
+      <div class="story-emoji">👩🏻‍🦱</div>
+      <p class="story-text" id="story-text"></p>
+      <p class="g-hint">Devam etmek için dokun</p>
+    </div>
+  </section>
+
+  <!-- BAŞLANGIÇ -->
+  <section id="screen-start" class="g-screen">
+    <div class="g-panel">
+      <p class="g-eyebrow">bir yolculuk</p>
+      <h1>Yol Arkadaşı</h1>
+      <p class="g-sub">Hatay'dan tek başına çık, Bandırma'da aşkım katılsın, İstanbul'da yanınıza küçük bir
+        yolcumuz bebek su katılsın ve hep birlikte Hatay'a dönün. Şeritler arasında geçip kalpleri topla, engellerden kaç.</p>
+      <p class="g-hint">Sağa / sola dokun ya da ok tuşlarını kullan</p>
+      <button id="btn-start" class="g-btn">Başla</button>
+    </div>
+  </section>
+
+  <!-- OYUN -->
+  <section id="screen-play" class="g-screen">
+    <div id="hud">
+      <p id="hud-stage" class="g-eyebrow">HATAY</p>
+      <p id="hud-hearts">♥ 0</p>
+    </div>
+    <canvas id="game-canvas"></canvas>
+    <div id="touch-left" class="touch-zone"></div>
+    <div id="touch-right" class="touch-zone"></div>
+  </section>
+
+  <!-- BİTİŞ (KAZANDI) -->
+  <section id="screen-win" class="g-screen">
+    <div class="g-panel">
+      <p class="g-eyebrow">Hatay'a döndük</p>
+      <h1>Eve döndük ✦</h1>
+      <p class="g-sub">Yol boyunca topladığın kalpler: <strong id="win-hearts">0</strong></p>
+      <p class="letter">Hatay'dan tek başıma çıktım, Bandırma'da sen bindin, İstanbul'da aramıza
+        küçük bir bebek su katıldı... Ve şimdi hep birlikte eve, Hatay'a döndük.</p>
+      <div id="love-scoreboard" class="scoreboard"></div>
+      <button id="btn-replay-win" class="g-btn">Tekrar oyna</button>
+    </div>
+  </section>
+
+  <!-- BİTİŞ (ÇARPTI) -->
+  <section id="screen-gameover" class="g-screen">
+    <div class="g-panel">
+      <p class="g-eyebrow">olamaz</p>
+      <h2>Küçük bir kaza ✦</h2>
+      <p class="g-sub" id="gameover-stage">Vardığın durak: Hatay</p>
+      <p class="g-sub">Topladığın kalpler: <strong id="gameover-hearts">0</strong></p>
+      <button id="btn-replay" class="g-btn">Tekrar dene</button>
+    </div>
+  </section>
+
+</div>
+
+<script src="game.js?v=8"></script>
+</body>
+</html>
