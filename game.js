@@ -96,9 +96,6 @@ const MAX_SPAWN_GAP = 180; // ardışık iki engel sırası arası en fazla mesa
 
 
 
-const ECE_EMOJI = "👩🏻‍🦱";
-const ENES_EMOJI = "🧔🏻";
-
 const STORY_LINES = [
 
   { speaker: "ece", text: "Merhaba, ben Ece." },
@@ -276,10 +273,28 @@ muteBtn.addEventListener("click", (e) => {
 let storyIndex = 0;
 let storyChoiceMade = false; // Enes'in sorusuna evet/hayır cevabı verildi mi
 
-const storyEmojiEl = document.getElementById("story-emoji");
+const storyPortraitCanvas = document.getElementById("story-portrait");
+const storyPortraitCtx = storyPortraitCanvas.getContext("2d");
 const storyTextEl = document.getElementById("story-text");
 const storyHintEl = document.getElementById("story-hint");
 const storyChoicesEl = document.getElementById("story-choices");
+
+// Hikaye ekranındaki portre, arabada çizilenle (drawMiniHead) aynı fonksiyonu
+// kullanıyor — böylece Enes'in kumral saçı/koyu yeşil gözü emoji yerine
+// arabadakiyle birebir aynı renkte görünüyor.
+function drawStoryPortrait(type) {
+
+  const prevCtx = ctx;
+
+  ctx = storyPortraitCtx;
+
+  ctx.clearRect(0, 0, storyPortraitCanvas.width, storyPortraitCanvas.height);
+
+  drawMiniHead(110, 122, 58, type);
+
+  ctx = prevCtx;
+
+}
 
 
 
@@ -287,7 +302,7 @@ function renderStory() {
 
   const entry = STORY_LINES[storyIndex];
 
-  storyEmojiEl.textContent = entry.speaker === "enes" ? ENES_EMOJI : ECE_EMOJI;
+  drawStoryPortrait(entry.speaker === "enes" ? "guy" : "girl");
 
   if (entry.type === "choice" && !storyChoiceMade) {
 
@@ -1274,25 +1289,17 @@ function drawMiniHead(x, y, r, type) {
 
   if (type === "guy") {
 
-    // sakal — gözlerin altından çeneye, kumral saçla aynı tonda
-
-    ctx.save();
-
-    ctx.beginPath();
-
-    ctx.rect(-r * 1.1, r * 0.08, r * 2.2, r * 1.3);
-
-    ctx.clip();
+    // sakal — yanaktan çeneye doğal oval bir şekil, kumral saçla aynı tonda
+    // (düz kenarlı bir kırpma yerine oval kullanmak sert bir çizgi yerine
+    // yumuşak bir çene hattı veriyor)
 
     ctx.fillStyle = hair;
 
     ctx.beginPath();
 
-    ctx.arc(0, r * 0.05, r * 1.08, 0, Math.PI * 2);
+    ctx.ellipse(0, r * 0.75, r * 0.95, r * 0.6, 0, 0, Math.PI * 2);
 
     ctx.fill();
-
-    ctx.restore();
 
   }
 
