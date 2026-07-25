@@ -44,6 +44,18 @@ const ROAD_WIDTH_RATIO = 0.78; // yolun ekran genişliğine oranı (kalan kısı
 const CITY_BANNER_FRAMES = 130; // şehir ismi ortada kaç kare görünsün
 const SIGN_GAP = 500; // tabelalar arası mesafe
 const TOTAL_HEARTS = 20; // yol boyunca toplam sabit kalp sayısı
+const TOTAL_HEARTS = 20; // yol boyunca toplam sabit kalp sayısı
+
+// ==========================================
+// ENGEL AÇMA/KAPAMA AYARI
+let ENABLE_OBSTACLES = true; // Bunu false yaparsan engeller tamamen kapanır.
+
+// İstersen oyun oynanırken konsoldan setObstacles(false) yazarak da kapatabilirsin.
+function setObstacles(state) {
+  ENABLE_OBSTACLES = state;
+  console.log("Engeller durumu: " + (state ? "AÇIK" : "KAPALI"));
+}
+// ==========================================
 
 const STORY_LINES = [
   "Merhaba, ben Ece.",
