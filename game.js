@@ -47,10 +47,8 @@ const TOTAL_HEARTS = 20; // yol boyunca toplam sabit kalp sayısı
 
 // ==========================================
 // ENGEL AÇMA/KAPAMA AYARI
-// Engelleri açmak için false yerine true yapın.
-let ENABLE_OBSTACLES = false; 
+let ENABLE_OBSTACLES = false; // Engelleri açmak için false yerine true yapın.
 
-// İstersen oyun oynanırken konsoldan setObstacles(true) yazarak da açabilirsin.
 function setObstacles(state) {
   ENABLE_OBSTACLES = state;
   console.log("Engeller durumu: " + (state ? "AÇIK" : "KAPALI"));
@@ -123,32 +121,25 @@ let musicStarted = false;
 function startMusic() {
   if (musicStarted) return;
   musicStarted = true;
-  if(bgMusic) {
-    bgMusic.volume = 0.55;
-    bgMusic.play().catch(() => {
-      // tarayıcı otomatik oynatmayı engellediyse bir sonraki dokunuşta tekrar denenecek
-      musicStarted = false;
-    });
-  }
+  bgMusic.volume = 0.55;
+  bgMusic.play().catch(() => {
+    // tarayıcı otomatik oynatmayı engellediyse bir sonraki dokunuşta tekrar denenecek
+    musicStarted = false;
+  });
 }
 
-if(muteBtn) {
-    muteBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      startMusic();
-      if(bgMusic) {
-          bgMusic.muted = !bgMusic.muted;
-          muteBtn.textContent = bgMusic.muted ? "🔇" : "🔊";
-      }
-    });
-}
+muteBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  startMusic();
+  bgMusic.muted = !bgMusic.muted;
+  muteBtn.textContent = bgMusic.muted ? "🔇" : "🔊";
+});
 
 // ====== HİKAYE (oyundan önce, cümle cümle) ======
 let storyIndex = 0;
 
 function renderStory() {
-  const storyTextEl = document.getElementById("story-text");
-  if(storyTextEl) storyTextEl.textContent = STORY_LINES[storyIndex];
+  document.getElementById("story-text").textContent = STORY_LINES[storyIndex];
 }
 
 function advanceStory() {
@@ -160,26 +151,21 @@ function advanceStory() {
   }
 }
 
-const screenStoryEl = document.getElementById("screen-story");
-if(screenStoryEl) {
-    screenStoryEl.addEventListener("click", () => {
-      startMusic();
-      advanceStory();
-    });
-}
+document.getElementById("screen-story").addEventListener("click", () => {
+  startMusic();
+  advanceStory();
+});
 renderStory();
 
 // ====== KURULUM ======
 function setupCanvas() {
   canvas = document.getElementById("game-canvas");
-  if(!canvas) return;
   ctx = canvas.getContext("2d");
   resizeCanvas();
   window.addEventListener("resize", resizeCanvas);
 }
 
 function resizeCanvas() {
-  // window.innerWidth/innerHeight (gerçek görünür viewport) kullanılıyor
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = window.innerWidth;
   const h = window.innerHeight;
@@ -216,7 +202,7 @@ function resetGame() {
   distSinceSpawn = 0;
   nextSpawnAt = 140;
   distSinceSign = 0;
-  cityBannerFrames = CITY_BANNER_FRAMES; // başlangıçta da Hatay/2001-2018 banner'ı görünsün
+  cityBannerFrames = CITY_BANNER_FRAMES;
   currentX = laneCenterX(lane);
   updateHud();
 }
@@ -229,10 +215,8 @@ function startPlaying() {
 }
 
 function updateHud() {
-  const hudStage = document.getElementById("hud-stage");
-  const hudHearts = document.getElementById("hud-hearts");
-  if(hudStage) hudStage.textContent = STAGES[stageIndex].name.toUpperCase();
-  if(hudHearts) hudHearts.textContent = `♥ ${hearts}/${TOTAL_HEARTS}`;
+  document.getElementById("hud-stage").textContent = STAGES[stageIndex].name.toUpperCase();
+  document.getElementById("hud-hearts").textContent = `♥ ${hearts}/${TOTAL_HEARTS}`;
 }
 
 // ====== GİRİŞ ======
@@ -246,24 +230,18 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "ArrowRight") changeLane(1);
 });
 
-const tl = document.getElementById("touch-left");
-const tr = document.getElementById("touch-right");
-if(tl) tl.addEventListener("click", () => changeLane(-1));
-if(tr) tr.addEventListener("click", () => changeLane(1));
+document.getElementById("touch-left").addEventListener("click", () => changeLane(-1));
+document.getElementById("touch-right").addEventListener("click", () => changeLane(1));
 
-const btnStart = document.getElementById("btn-start");
-const btnReplay = document.getElementById("btn-replay");
-const btnReplayWin = document.getElementById("btn-replay-win");
-
-if(btnStart) btnStart.addEventListener("click", () => {
+document.getElementById("btn-start").addEventListener("click", () => {
   resetGame();
   startPlaying();
 });
-if(btnReplay) btnReplay.addEventListener("click", () => {
+document.getElementById("btn-replay").addEventListener("click", () => {
   resetGame();
   startPlaying();
 });
-if(btnReplayWin) btnReplayWin.addEventListener("click", () => {
+document.getElementById("btn-replay-win").addEventListener("click", () => {
   resetGame();
   startPlaying();
 });
@@ -282,17 +260,15 @@ function spawnEntity() {
       .map((e) => e.lane)
   );
 
-  // 3. EN ÖNEMLİ KISIM: Eğer son mesafede zaten 2 farklı şeritte engel varsa,
-  // 3. ve son boş şeride engel koymayı kesinlikle yasaklıyoruz.
+  // 3. EN ÖNEMLİ KISIM: 3'lü barikatı önleme
   let availableLanes = lanes.filter((l) => {
-    // Eğer 2 şerit doluysa ve bu şerit onlardan biri değilse (yani tek kalan 3. boş şeritse)
     if (recentlyOccupied.size >= 2 && !recentlyOccupied.has(l)) {
-      return false; // Çapraz duvar oluşmaması için bu şeridi listeden çıkar
+      return false; 
     }
     return true;
   });
 
-  // 4. Aynı şeritte engellerin üst üste binmesini engelleyen mesafe
+  // 4. Aynı şeritte engellerin üst üste binmesini önleme
   const combineThreshold = playerH + 30;
   const strictlyOccupied = new Set(
     entities
@@ -300,33 +276,28 @@ function spawnEntity() {
       .map((e) => e.lane)
   );
 
-  // Tamamen müsait olan şeritler
   const freeLanes = availableLanes.filter((l) => !strictlyOccupied.has(l));
-
   let obstaclesToAdd = 0;
   
   // EĞER ENGELLER AÇIKSA VE BOŞ ŞERİT VARSA ENGEL EKLENECEK
   if (ENABLE_OBSTACLES && freeLanes.length > 0) {
     const roll = Math.random();
     if (roll < 0.15) {
-      obstaclesToAdd = 0; // %15 ihtimalle pas geç
+      obstaclesToAdd = 0; 
     } 
-    // Eğer etrafta (safeDistance içinde) HİÇ engel yoksa, yan yana 2 engel atılabilir
     else if (roll > 0.8 && freeLanes.length >= 2 && recentlyOccupied.size === 0) {
       obstaclesToAdd = 2;
     } 
     else {
-      obstaclesToAdd = 1; // Genelde tek engel atarak yolu açık bırak
+      obstaclesToAdd = 1; 
     }
   }
 
-  // Şeritleri rastgele seç ve engelleri ekle
   const shuffledFree = [...freeLanes].sort(() => Math.random() - 0.5);
   const chosenLanes = shuffledFree.slice(0, obstaclesToAdd);
 
   chosenLanes.forEach((l) => entities.push({ type: "obstacle", lane: l, y: -80 }));
 
-  // Kalp ekleme (sadece engelsiz şeritlere)
   if (heartsSpawned < TOTAL_HEARTS && Math.random() < 0.45) {
     const heartCandidates = lanes.filter((l) => !chosenLanes.includes(l));
     if (heartCandidates.length > 0) {
@@ -388,7 +359,6 @@ function update() {
   });
   entities = entities.filter((e) => !(e.hit && e.type === "heart"));
 
-  // Şehir geçişleri
   const newStageIndex = Math.min(Math.floor(distance / STAGE_LENGTH), STAGES.length - 1);
   if (newStageIndex !== stageIndex) {
     stageIndex = newStageIndex;
@@ -405,25 +375,21 @@ function update() {
 function triggerGameOver() {
   state = "gameover";
   cancelLoop();
-  const goStage = document.getElementById("gameover-stage");
-  const goHearts = document.getElementById("gameover-hearts");
-  if(goStage) goStage.textContent = `Vardığın durak: ${STAGES[stageIndex].name}`;
-  if(goHearts) goHearts.textContent = hearts;
+  document.getElementById("gameover-stage").textContent = `Vardığın durak: ${STAGES[stageIndex].name}`;
+  document.getElementById("gameover-hearts").textContent = hearts;
   showScreen("gameover");
 }
 
 function triggerWin() {
   state = "win";
   cancelLoop();
-  const winHearts = document.getElementById("win-hearts");
-  if(winHearts) winHearts.textContent = `${hearts} / ${TOTAL_HEARTS}`;
+  document.getElementById("win-hearts").textContent = `${hearts} / ${TOTAL_HEARTS}`;
   renderScoreboard(hearts);
   showScreen("win");
 }
 
 function renderScoreboard(collected) {
   const board = document.getElementById("love-scoreboard");
-  if(!board) return;
   board.innerHTML = "";
   LOVE_TIERS.forEach((tier) => {
     const isActive = collected >= tier.min && collected <= tier.max;
@@ -465,7 +431,6 @@ function draw() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, w, h);
 
-  // yol (kenarlarda tabelalar için boşluk bırakılıyor)
   ctx.fillStyle = stage.road;
   ctx.fillRect(roadX0, 0, roadWidth, h);
 
@@ -548,12 +513,10 @@ function drawHeart(x, y) {
 function drawCar(cx, y, w, h, occupants) {
   ctx.save();
   ctx.translate(cx, y);
-  // gölge
   ctx.fillStyle = "rgba(0,0,0,0.25)";
   ctx.beginPath();
   ctx.ellipse(0, h + 8, w * 0.5, 8, 0, 0, Math.PI * 2);
   ctx.fill();
-  // gövde
   ctx.fillStyle = "#e6342f";
   roundRect(-w / 2, 0, w, h, w * 0.22);
   ctx.fill();
@@ -574,13 +537,11 @@ function drawCar(cx, y, w, h, occupants) {
     }
   }
 
-  // tekerlekler
   ctx.fillStyle = "#1c1c1c";
   ctx.fillRect(-w * 0.62, h * 0.14, w * 0.14, h * 0.22);
   ctx.fillRect(w * 0.48, h * 0.14, w * 0.14, h * 0.22);
   ctx.fillRect(-w * 0.62, h * 0.62, w * 0.14, h * 0.22);
   ctx.fillRect(w * 0.48, h * 0.62, w * 0.14, h * 0.22);
-  // farlar
   ctx.fillStyle = "#ffe9a8";
   ctx.fillRect(-w * 0.32, h * 0.02, w * 0.18, h * 0.05);
   ctx.fillRect(w * 0.14, h * 0.02, w * 0.18, h * 0.05);
