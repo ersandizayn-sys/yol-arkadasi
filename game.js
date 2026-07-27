@@ -164,6 +164,37 @@ const BEAT_TAUNTS = [
   "Son bir tane daha!",
 ];
 
+// İstanbul'da bebek arabaya binince, yola devam etmeden önce Ece onu
+// besleyip uyutuyor (dokunarak, iki aşamalı).
+const CARE_STAGE_INDEX = 2;
+const FEED_REQUIRED_TAPS = 5;
+const SLEEP_REQUIRED_TAPS = 5;
+const FEED_MESSAGES = [
+  "Aferin, bir kaşık daha!",
+  "Yaa şekerim...",
+  "Bir tane daha!",
+  "Az kaldı!",
+  "Harika gidiyorsun!",
+];
+const SLEEP_MESSAGES = [
+  "Şşşş, uyu bebeğim...",
+  "Ninni ninni...",
+  "Gözleri kapanıyor...",
+  "Neredeyse uyudu...",
+  "Son bir kere daha okşa...",
+];
+
+// Hatay'a dönerken Enes yine geliyor — bu sefer Ece onu ekrana dokunarak öpüyor.
+const KISS_STAGE_INDEX = 3;
+const KISS_REQUIRED_TAPS = 6;
+const KISS_MESSAGES = [
+  "Mmuck!",
+  "Bir öpücük daha!",
+  "Seni seviyorum ✦",
+  "Eve dönüyoruz...",
+  "Son bir öpücük daha!",
+];
+
 const LOVE_TIERS = [
 
   { min: 0, max: 4, label: "Seviyorum", color: "#ffd9e2" },
@@ -232,6 +263,12 @@ let pendingStageIndex = null; // quiz doğru cevaplanınca geçilecek şehir
 
 let beatHits = 0; // Enes'i dövme ekranında şimdiye kadarki dokunuş sayısı
 
+let babyPhase = "feed"; // feed | sleep — bebek bakımı ekranının aşaması
+
+let babyTaps = 0; // mevcut aşamadaki dokunuş sayısı
+
+let kissTaps = 0; // Enes'i öpme ekranında şimdiye kadarki dokunuş sayısı
+
 
 
 const screens = {
@@ -249,6 +286,10 @@ const screens = {
   quiz: document.getElementById("screen-quiz"),
 
   beat: document.getElementById("screen-beat"),
+
+  baby: document.getElementById("screen-baby"),
+
+  kiss: document.getElementById("screen-kiss"),
 
 };
 
@@ -554,6 +595,12 @@ function resetGame() {
 
   beatHits = 0;
 
+  babyPhase = "feed";
+
+  babyTaps = 0;
+
+  kissTaps = 0;
+
   updateHud();
 
 }
@@ -563,6 +610,15 @@ function applyStageChange(newStageIndex) {
   speed *= SPEED_GROWTH;
   cityBannerFrames = CITY_BANNER_FRAMES;
   updateHud();
+}
+
+// Quiz / dövme / bebek bakımı / öpme ekranlarından sonra yola geri dönüş.
+function resumeAfterInteraction() {
+  applyStageChange(pendingStageIndex);
+  pendingStageIndex = null;
+  showScreen("play");
+  state = "playing";
+  if (!rafId) rafId = requestAnimationFrame(loop);
 }
 
 // ====== BÖLÜM SONU QUİZİ ======
@@ -602,12 +658,12 @@ function handleQuizAnswer(index, quiz, btn, optionsWrap) {
     setTimeout(() => {
       if (pendingStageIndex === BEAT_STAGE_INDEX) {
         startBeatEnes();
+      } else if (pendingStageIndex === CARE_STAGE_INDEX) {
+        startBabyCare();
+      } else if (pendingStageIndex === KISS_STAGE_INDEX) {
+        startKissEnes();
       } else {
-        applyStageChange(pendingStageIndex);
-        pendingStageIndex = null;
-        showScreen("play");
-        state = "playing";
-        if (!rafId) rafId = requestAnimationFrame(loop);
+        resumeAfterInteraction();
       }
     }, 700);
   } else {
@@ -644,19 +700,110 @@ function handleBeatTap() {
 
   if (beatHits >= BEAT_REQUIRED_HITS) {
     beatHintEl.textContent = "Tamam, yeterince dövdün ✦ yola devam ediyoruz...";
-    setTimeout(() => {
-      applyStageChange(pendingStageIndex);
-      pendingStageIndex = null;
-      showScreen("play");
-      state = "playing";
-      if (!rafId) rafId = requestAnimationFrame(loop);
-    }, 900);
+    setTimeout(resumeAfterInteraction, 900);
   } else {
     beatHintEl.textContent = BEAT_TAUNTS[Math.min(beatHits - 1, BEAT_TAUNTS.length - 1)];
   }
 }
 
 bindTap(document.getElementById("screen-beat"), handleBeatTap);
+
+// ====== BEBEĞİ BESLE VE UYUT (İstanbul'da arabaya binince) ======
+const babyPortraitCanvas = document.getElementById("baby-portrait");
+const babyPortraitCtx = babyPortraitCanvas.getContext("2d");
+const babyTitleEl = document.getElementById("baby-title");
+const babyHintEl = document.getElementById("baby-hint");
+const babyCountEl = document.getElementById("baby-count");
+
+function startBabyCare() {
+  state = "baby";
+  babyPhase = "feed";
+  babyTaps = 0;
+  cancelLoop();
+  drawPortraitOnCanvas(babyPortraitCanvas, babyPortraitCtx, "child");
+  babyTitleEl.textContent = "Bebek ağlıyor ✦ onu besle";
+  babyHintEl.textContent = "Ekrana dokunarak besle";
+  babyCountEl.textContent = `0 / ${FEED_REQUIRED_TAPS}`;
+  showScreen("baby");
+}
+
+function handleBabyTap() {
+  if (state !== "baby") return;
+  babyTaps++;
+
+  babyPortraitCanvas.classList.remove("bounce");
+  void babyPortraitCanvas.offsetWidth; // reflow — animasyonu baştan başlatmak için
+  babyPortraitCanvas.classList.add("bounce");
+
+  const isFeeding = babyPhase === "feed";
+  const required = isFeeding ? FEED_REQUIRED_TAPS : SLEEP_REQUIRED_TAPS;
+  const messages = isFeeding ? FEED_MESSAGES : SLEEP_MESSAGES;
+  babyCountEl.textContent = `${babyTaps} / ${required}`;
+
+  if (babyTaps < required) {
+    babyHintEl.textContent = messages[Math.min(babyTaps - 1, messages.length - 1)];
+    return;
+  }
+
+  if (isFeeding) {
+    babyPhase = "sleep";
+    babyTaps = 0;
+    babyTitleEl.textContent = "Karnı doydu ✦ şimdi uyut";
+    babyHintEl.textContent = "Ekrana dokunarak uyut";
+    babyCountEl.textContent = `0 / ${SLEEP_REQUIRED_TAPS}`;
+  } else {
+    babyHintEl.textContent = "Uyudu 💤 yolculuğa devam ediyoruz...";
+    setTimeout(resumeAfterInteraction, 900);
+  }
+}
+
+bindTap(document.getElementById("screen-baby"), handleBabyTap);
+
+// ====== ENES'İ ÖP (Hatay'a dönerken) ======
+const kissPortraitCanvas = document.getElementById("kiss-portrait");
+const kissPortraitCtx = kissPortraitCanvas.getContext("2d");
+const kissHintEl = document.getElementById("kiss-hint");
+const kissCountEl = document.getElementById("kiss-count");
+const kissScreenEl = document.getElementById("screen-kiss");
+
+function startKissEnes() {
+  state = "kiss";
+  kissTaps = 0;
+  cancelLoop();
+  drawPortraitOnCanvas(kissPortraitCanvas, kissPortraitCtx, "guy");
+  kissHintEl.textContent = "Ekrana dokunarak Enes'i öp";
+  kissCountEl.textContent = "0 öpücük 💋";
+  showScreen("kiss");
+}
+
+function spawnFloatingHeart() {
+  const heart = document.createElement("span");
+  heart.className = "floating-heart";
+  heart.textContent = "💕";
+  heart.style.left = `${45 + Math.random() * 10}%`;
+  kissScreenEl.appendChild(heart);
+  setTimeout(() => heart.remove(), 900);
+}
+
+function handleKissTap() {
+  if (state !== "kiss") return;
+  kissTaps++;
+  kissCountEl.textContent = `${kissTaps} öpücük 💋`;
+
+  kissPortraitCanvas.classList.remove("kiss-pulse");
+  void kissPortraitCanvas.offsetWidth; // reflow — animasyonu baştan başlatmak için
+  kissPortraitCanvas.classList.add("kiss-pulse");
+  spawnFloatingHeart();
+
+  if (kissTaps >= KISS_REQUIRED_TAPS) {
+    kissHintEl.textContent = "Şimdi hep birlikte eve dönüyoruz ✦";
+    setTimeout(resumeAfterInteraction, 900);
+  } else {
+    kissHintEl.textContent = KISS_MESSAGES[Math.min(kissTaps - 1, KISS_MESSAGES.length - 1)];
+  }
+}
+
+bindTap(kissScreenEl, handleKissTap);
 
 function startPlaying() {
 

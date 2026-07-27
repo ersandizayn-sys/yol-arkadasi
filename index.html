@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <meta name="robots" content="noindex, nofollow" />
 <title>yol arkadaşı</title>
-<link rel="stylesheet" href="game.css?v=14" />
+<link rel="stylesheet" href="game.css?v=15" />
 </head>
 <body>
 
@@ -72,6 +72,28 @@
     </div>
   </section>
 
+  <!-- BEBEK GELİYOR (İstanbul) — besle ve uyut -->
+  <section id="screen-baby" class="g-screen">
+    <div class="g-panel">
+      <p class="g-eyebrow">küçük bir yolcu katılıyor</p>
+      <h2 id="baby-title">Bebek ağlıyor ✦ onu besle</h2>
+      <canvas class="story-portrait baby-portrait" id="baby-portrait" width="220" height="220"></canvas>
+      <p class="g-hint" id="baby-hint">Ekrana dokunarak besle</p>
+      <p class="g-sub" id="baby-count">0 / 5</p>
+    </div>
+  </section>
+
+  <!-- ENES YİNE GELİYOR (dönüş) — öp -->
+  <section id="screen-kiss" class="g-screen">
+    <div class="g-panel">
+      <p class="g-eyebrow">enes yine burada</p>
+      <h2>Bu sefer onu öp ✦</h2>
+      <canvas class="story-portrait kiss-portrait" id="kiss-portrait" width="220" height="220"></canvas>
+      <p class="g-hint" id="kiss-hint">Ekrana dokunarak Enes'i öp</p>
+      <p class="g-sub" id="kiss-count">0 öpücük 💋</p>
+    </div>
+  </section>
+
   <!-- BİTİŞ (KAZANDI) -->
   <section id="screen-win" class="g-screen">
     <div class="g-panel">
@@ -98,6 +120,6 @@
 
 </div>
 
-<script src="game.js?v=15"></script>
+<script src="game.js?v=16"></script>
 </body>
 </html>
