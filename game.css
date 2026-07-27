@@ -196,6 +196,44 @@ h2 { font-size: 1.4rem; margin: 0; line-height: 1.3; }
   text-align: right;
 }
 
+/* Bölüm sonu quiz ekranı */
+.quiz-options {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+
+.quiz-option {
+  margin-top: 0;
+  width: 100%;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.quiz-option:active { transform: scale(0.97); }
+
+.quiz-option.correct {
+  background: var(--accent);
+  color: #2b1b2f;
+  border-color: transparent;
+}
+
+.quiz-option.wrong {
+  background: rgba(255, 90, 90, 0.25);
+  border-color: rgba(255, 90, 90, 0.5);
+}
+
+#quiz-feedback {
+  min-height: 1.2em;
+}
+
+#quiz-feedback.quiz-right { color: var(--accent); }
+#quiz-feedback.quiz-wrong { color: #ff8f8f; }
+
 /* Play screen */
 #screen-play {
   padding: 0;

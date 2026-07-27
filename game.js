@@ -132,6 +132,26 @@ const STORY_LINES = [
 
 ];
 
+// Bölüm sonu quizi — şehirden şehire geçerken Enes, Ece'ye soruyor.
+// Anahtar = ulaşılan yeni STAGES index'i. correct = doğru şıkkın index'i.
+const QUIZZES = {
+  1: {
+    question: "Ece nereli?",
+    options: ["Bandırma", "Hatay", "İstanbul", "Ankara"],
+    correct: 1,
+  },
+  2: {
+    question: "Ece üniversite için hangi şehre gitti ve hayatının aşkıyla orada tanıştı?",
+    options: ["İzmir", "Ankara", "Bandırma", "İstanbul"],
+    correct: 2,
+  },
+  3: {
+    question: "Yolculuğun sonunda hep birlikte hangi şehre dönüyorsunuz?",
+    options: ["İstanbul", "Bandırma", "Ankara", "Hatay"],
+    correct: 3,
+  },
+};
+
 
 
 const LOVE_TIERS = [
@@ -198,6 +218,8 @@ let playerY = 0;
 
 let helpEnabled = false; // Enes'e "evet" dendiyse true — oyun boyunca hiç engel çıkmaz
 
+let pendingStageIndex = null; // quiz doğru cevaplanınca geçilecek şehir
+
 
 
 const screens = {
@@ -211,6 +233,8 @@ const screens = {
   win: document.getElementById("screen-win"),
 
   gameover: document.getElementById("screen-gameover"),
+
+  quiz: document.getElementById("screen-quiz"),
 
 };
 
@@ -514,11 +538,66 @@ function resetGame() {
 
   currentX = laneCenterX(lane);
 
+  pendingStageIndex = null;
+
   updateHud();
 
 }
 
+function applyStageChange(newStageIndex) {
+  stageIndex = newStageIndex;
+  speed *= SPEED_GROWTH;
+  cityBannerFrames = CITY_BANNER_FRAMES;
+  updateHud();
+}
 
+// ====== BÖLÜM SONU QUİZİ ======
+function startQuiz(newStageIndex) {
+  pendingStageIndex = newStageIndex;
+  state = "quiz";
+  cancelLoop();
+  renderQuiz(QUIZZES[newStageIndex]);
+  showScreen("quiz");
+}
+
+function renderQuiz(quiz) {
+  document.getElementById("quiz-question").textContent = quiz.question;
+  const feedback = document.getElementById("quiz-feedback");
+  feedback.textContent = "";
+  feedback.className = "g-hint";
+
+  const optionsWrap = document.getElementById("quiz-options");
+  optionsWrap.innerHTML = "";
+  quiz.options.forEach((opt, i) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "g-btn quiz-option";
+    btn.textContent = opt;
+    bindTap(btn, () => handleQuizAnswer(i, quiz, btn, optionsWrap));
+    optionsWrap.appendChild(btn);
+  });
+}
+
+function handleQuizAnswer(index, quiz, btn, optionsWrap) {
+  const feedback = document.getElementById("quiz-feedback");
+  if (index === quiz.correct) {
+    btn.classList.add("correct");
+    feedback.textContent = "Doğru bildin ✦ devam ediyoruz...";
+    feedback.className = "g-hint quiz-right";
+    Array.from(optionsWrap.children).forEach((b) => (b.disabled = true));
+    setTimeout(() => {
+      applyStageChange(pendingStageIndex);
+      pendingStageIndex = null;
+      showScreen("play");
+      state = "playing";
+      if (!rafId) rafId = requestAnimationFrame(loop);
+    }, 700);
+  } else {
+    btn.classList.add("wrong");
+    feedback.textContent = "Olmadı, bir daha dene ✦";
+    feedback.className = "g-hint quiz-wrong";
+  }
+}
 
 function startPlaying() {
 
@@ -800,19 +879,21 @@ function update() {
 
 
 
-  // Şehir geçişleri — durmadan, tek seferde Hatay -> İstanbul -> Bandırma
+  // Şehir geçişleri — yeni şehre girmeden önce bölüm sonu quizi var.
 
   const newStageIndex = Math.min(Math.floor(distance / STAGE_LENGTH), STAGES.length - 1);
 
   if (newStageIndex !== stageIndex) {
 
-    stageIndex = newStageIndex;
+    if (QUIZZES[newStageIndex]) {
 
-    speed *= SPEED_GROWTH;
+      startQuiz(newStageIndex);
 
-    cityBannerFrames = CITY_BANNER_FRAMES;
+      return;
 
-    updateHud();
+    }
+
+    applyStageChange(newStageIndex);
 
   }
 
