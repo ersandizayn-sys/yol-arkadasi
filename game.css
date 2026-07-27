@@ -327,6 +327,59 @@ h2 { font-size: 1.4rem; margin: 0; line-height: 1.3; }
   animation: float-heart 0.9s ease forwards;
 }
 
+/* Eve varmadan önceki itiraf ekranı */
+#screen-finale {
+  position: relative;
+  overflow: hidden;
+}
+
+.finale-portraits {
+  display: flex;
+  gap: 1.2rem;
+  justify-content: center;
+  align-items: center;
+  transition: gap 0.5s ease;
+}
+
+.finale-portrait {
+  width: 6rem;
+  height: 6rem;
+}
+
+#screen-finale.finale-kiss .finale-portraits {
+  gap: 0.1rem;
+}
+
+.finale-input {
+  width: 100%;
+  padding: 0.85rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 1rem;
+  text-align: center;
+  outline: none;
+}
+
+.finale-input::placeholder {
+  color: rgba(255, 246, 240, 0.35);
+}
+
+.finale-input:focus {
+  border-color: var(--accent);
+}
+
+@keyframes input-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+
+.finale-input.shake {
+  animation: input-shake 0.3s ease;
+}
+
 /* Play screen */
 #screen-play {
   padding: 0;

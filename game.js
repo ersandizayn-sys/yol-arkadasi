@@ -195,6 +195,11 @@ const KISS_MESSAGES = [
   "Son bir öpücük daha!",
 ];
 
+// Eve varmadan hemen önce (oyun bitmeden önce) Ece, Enes'e yazarak itiraf ediyor.
+// Doğru yazana kadar oyun bitmiyor — girdi kutusundaki placeholder ("soluk
+// harfler") ne yazması gerektiğini gösteriyor.
+const FINAL_MESSAGE = "seni çok seviyorum";
+
 const LOVE_TIERS = [
 
   { min: 0, max: 4, label: "Seviyorum", color: "#ffd9e2" },
@@ -290,6 +295,8 @@ const screens = {
   baby: document.getElementById("screen-baby"),
 
   kiss: document.getElementById("screen-kiss"),
+
+  finale: document.getElementById("screen-finale"),
 
 };
 
@@ -805,6 +812,76 @@ function handleKissTap() {
 
 bindTap(kissScreenEl, handleKissTap);
 
+// ====== SON İTİRAF (eve varmadan hemen önce) ======
+const finalePortraitEceCanvas = document.getElementById("finale-portrait-ece");
+const finalePortraitEceCtx = finalePortraitEceCanvas.getContext("2d");
+const finalePortraitEnesCanvas = document.getElementById("finale-portrait-enes");
+const finalePortraitEnesCtx = finalePortraitEnesCanvas.getContext("2d");
+const finaleScreenEl = document.getElementById("screen-finale");
+const finaleInputEl = document.getElementById("finale-input");
+const finaleHintEl = document.getElementById("finale-hint");
+const finaleSubmitBtn = document.getElementById("btn-finale-submit");
+
+function normalizeTr(str) {
+  return str
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .replace(/[.!?]+$/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function startFinale() {
+  state = "finale";
+  cancelLoop();
+  drawPortraitOnCanvas(finalePortraitEceCanvas, finalePortraitEceCtx, "girl");
+  drawPortraitOnCanvas(finalePortraitEnesCanvas, finalePortraitEnesCtx, "guy");
+  finaleScreenEl.classList.remove("finale-kiss");
+  finaleInputEl.value = "";
+  finaleInputEl.disabled = false;
+  finaleSubmitBtn.disabled = false;
+  finaleHintEl.textContent = "Enes'e söylemen gerekeni yaz";
+  finaleHintEl.className = "g-hint";
+  showScreen("finale");
+  finaleInputEl.focus();
+}
+
+function spawnFinaleHearts() {
+  for (let i = 0; i < 5; i++) {
+    setTimeout(() => {
+      const heart = document.createElement("span");
+      heart.className = "floating-heart";
+      heart.textContent = "💕";
+      heart.style.left = `${40 + Math.random() * 20}%`;
+      finaleScreenEl.appendChild(heart);
+      setTimeout(() => heart.remove(), 900);
+    }, i * 150);
+  }
+}
+
+function handleFinaleSubmit() {
+  if (state !== "finale") return;
+  if (normalizeTr(finaleInputEl.value) === FINAL_MESSAGE) {
+    finaleInputEl.disabled = true;
+    finaleSubmitBtn.disabled = true;
+    finaleHintEl.textContent = "💏";
+    finaleHintEl.className = "g-hint quiz-right";
+    finaleScreenEl.classList.add("finale-kiss");
+    spawnFinaleHearts();
+    setTimeout(triggerWin, 1200);
+  } else {
+    finaleHintEl.textContent = "Enes bunu duymak istiyor ✦ bir daha dene";
+    finaleHintEl.className = "g-hint quiz-wrong";
+    finaleInputEl.classList.remove("shake");
+    void finaleInputEl.offsetWidth; // reflow — animasyonu baştan başlatmak için
+    finaleInputEl.classList.add("shake");
+  }
+}
+
+finaleSubmitBtn.addEventListener("click", handleFinaleSubmit);
+finaleInputEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") handleFinaleSubmit();
+});
+
 function startPlaying() {
 
   showScreen("play");
@@ -1107,7 +1184,9 @@ function update() {
 
   if (distance >= STAGE_LENGTH * STAGES.length) {
 
-    triggerWin();
+    startFinale();
+
+    return;
 
   }
 
