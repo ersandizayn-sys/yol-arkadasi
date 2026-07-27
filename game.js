@@ -136,23 +136,33 @@ const STORY_LINES = [
 // Anahtar = ulaşılan yeni STAGES index'i. correct = doğru şıkkın index'i.
 const QUIZZES = {
   1: {
-    question: "Ece nereli?",
-    options: ["Bandırma", "Hatay", "İstanbul", "Ankara"],
+    question: "Günümüzün Ferhat ile Şirini olan Ece ile Enes'in aşkı hangi yıl başladı?",
+    options: ["2018", "2019", "2020", "2021"],
     correct: 1,
   },
   2: {
-    question: "Ece üniversite için hangi şehre gitti ve hayatının aşkıyla orada tanıştı?",
-    options: ["İzmir", "Ankara", "Bandırma", "İstanbul"],
-    correct: 2,
+    question: "Bu muhteşem aşkın meyvesinin adı nedir?",
+    options: ["Ateş", "Tahta", "Toprak", "Su"],
+    correct: 3,
   },
   3: {
-    question: "Yolculuğun sonunda hep birlikte hangi şehre dönüyorsunuz?",
-    options: ["İstanbul", "Bandırma", "Ankara", "Hatay"],
+    question: "Enes Ece'nin vücudunda en çok nereyi sever?",
+    options: ["Gözü", "Götü", "Saçı", "Vücudundaki her detayı"],
     correct: 3,
   },
 };
 
-
+// Bandırma'da Enes arabaya binince, yola devam etmeden önce Ece ekrana
+// dokunarak sinirini atabiliyor (STAGES index'i quiz'lerle aynı anahtar).
+const BEAT_STAGE_INDEX = 1;
+const BEAT_REQUIRED_HITS = 6;
+const BEAT_TAUNTS = [
+  "Al bakalım!",
+  "Bir daha!",
+  "Hih, hak ettin!",
+  "Yaramaz Enes!",
+  "Son bir tane daha!",
+];
 
 const LOVE_TIERS = [
 
@@ -220,6 +230,8 @@ let helpEnabled = false; // Enes'e "evet" dendiyse true — oyun boyunca hiç en
 
 let pendingStageIndex = null; // quiz doğru cevaplanınca geçilecek şehir
 
+let beatHits = 0; // Enes'i dövme ekranında şimdiye kadarki dokunuş sayısı
+
 
 
 const screens = {
@@ -235,6 +247,8 @@ const screens = {
   gameover: document.getElementById("screen-gameover"),
 
   quiz: document.getElementById("screen-quiz"),
+
+  beat: document.getElementById("screen-beat"),
 
 };
 
@@ -309,18 +323,16 @@ const storyChoicesEl = document.getElementById("story-choices");
 // Ece emoji ile gösteriliyor (ilk emoji beğenilmişti). Enes'in emojisi
 // sabit siyah saçlı kaldığı için onun kumral saçı/koyu yeşil gözü/sakalı,
 // arabada çizilenle (drawMiniHead) aynı fonksiyon kullanılarak çiziliyor.
-function drawStoryPortrait(type) {
-
+function drawPortraitOnCanvas(targetCanvas, targetCtx, type) {
   const prevCtx = ctx;
-
-  ctx = storyPortraitCtx;
-
-  ctx.clearRect(0, 0, storyPortraitCanvas.width, storyPortraitCanvas.height);
-
+  ctx = targetCtx;
+  targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
   drawMiniHead(110, 122, 58, type);
-
   ctx = prevCtx;
+}
 
+function drawStoryPortrait(type) {
+  drawPortraitOnCanvas(storyPortraitCanvas, storyPortraitCtx, type);
 }
 
 
@@ -540,6 +552,8 @@ function resetGame() {
 
   pendingStageIndex = null;
 
+  beatHits = 0;
+
   updateHud();
 
 }
@@ -586,11 +600,15 @@ function handleQuizAnswer(index, quiz, btn, optionsWrap) {
     feedback.className = "g-hint quiz-right";
     Array.from(optionsWrap.children).forEach((b) => (b.disabled = true));
     setTimeout(() => {
-      applyStageChange(pendingStageIndex);
-      pendingStageIndex = null;
-      showScreen("play");
-      state = "playing";
-      if (!rafId) rafId = requestAnimationFrame(loop);
+      if (pendingStageIndex === BEAT_STAGE_INDEX) {
+        startBeatEnes();
+      } else {
+        applyStageChange(pendingStageIndex);
+        pendingStageIndex = null;
+        showScreen("play");
+        state = "playing";
+        if (!rafId) rafId = requestAnimationFrame(loop);
+      }
     }, 700);
   } else {
     btn.classList.add("wrong");
@@ -598,6 +616,47 @@ function handleQuizAnswer(index, quiz, btn, optionsWrap) {
     feedback.className = "g-hint quiz-wrong";
   }
 }
+
+// ====== ENES'İ DÖV (Bandırma'da arabaya binince) ======
+const beatPortraitCanvas = document.getElementById("beat-portrait");
+const beatPortraitCtx = beatPortraitCanvas.getContext("2d");
+const beatCountEl = document.getElementById("beat-count");
+const beatHintEl = document.getElementById("beat-hint");
+
+function startBeatEnes() {
+  state = "beat";
+  beatHits = 0;
+  cancelLoop();
+  drawPortraitOnCanvas(beatPortraitCanvas, beatPortraitCtx, "guy");
+  beatCountEl.textContent = "0 kere dövdün 👊";
+  beatHintEl.textContent = "Ekrana dokunarak Enes'i döv";
+  showScreen("beat");
+}
+
+function handleBeatTap() {
+  if (state !== "beat") return;
+  beatHits++;
+  beatCountEl.textContent = `${beatHits} kere dövdün 👊`;
+
+  beatPortraitCanvas.classList.remove("hit");
+  void beatPortraitCanvas.offsetWidth; // reflow — animasyonu baştan başlatmak için
+  beatPortraitCanvas.classList.add("hit");
+
+  if (beatHits >= BEAT_REQUIRED_HITS) {
+    beatHintEl.textContent = "Tamam, yeterince dövdün ✦ yola devam ediyoruz...";
+    setTimeout(() => {
+      applyStageChange(pendingStageIndex);
+      pendingStageIndex = null;
+      showScreen("play");
+      state = "playing";
+      if (!rafId) rafId = requestAnimationFrame(loop);
+    }, 900);
+  } else {
+    beatHintEl.textContent = BEAT_TAUNTS[Math.min(beatHits - 1, BEAT_TAUNTS.length - 1)];
+  }
+}
+
+bindTap(document.getElementById("screen-beat"), handleBeatTap);
 
 function startPlaying() {
 
